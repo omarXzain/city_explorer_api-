@@ -21,13 +21,12 @@ app.get('/location', (request, response) => {
     .then((result) => {
       if (result.rows.length > 0) {
         response.status(200).json(result.rows[0]);
-        console.log('hi im omar');
+        console.log('Test im omar');
       } else {
         superagent(
           `https://eu1.locationiq.com/v1/search.php?key=${process.env.GEOCODE_API_KEY}&q=${city}&format=json`
-        ).then((res) => {
-          console.log('helloooo');
-          const geoData = res.body;
+        ).then((dataX) => {
+          const geoData = dataX.body;
           const locationData = new Location(city, geoData);
           const SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1,$2,$3,$4) RETURNING *';
           const value = [locationData.search_query, locationData.formatted_query, locationData.latitude, locationData.longitude];
@@ -48,7 +47,6 @@ function Location(city, geoData) {
   this.latitude = geoData[0].lat;
   this.longitude = geoData[0].lon;
 }
-
 // %%%%%%%%%%%%%%%%%%%%%%% Weather Handler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 app.get('/weather', (request, response) => {
@@ -68,7 +66,6 @@ function Weather(weatherData) {
   this.forecast = weatherData.weather.description;
   this.datetime = new Date(weatherData.valid_date);
 }
-
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Trails Handler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -103,7 +100,6 @@ function Trails(trailData) {
   this.condition_time = trailData.condition_time;
 }
 // ###################### Error Handler ########################
-
 function errorHandler(error, request, response) {
   response.status(500).send(error);
 }
