@@ -4,15 +4,15 @@ Estimate of time needed to complete: 1 day
 
 Start time: 3.06pm
 
-Finish time: 8.35 pm
+Finish time: 11.08 pm
 
-Actual time needed to complete: 3 hours
+Actual time needed to complete: 8 hours
 
 
 # Project Name
 
 **Author**: Omar Zain
-**Version**: 1.9.7 (increment the patch/fix version number if you make more commits past your first submission)
+**Version**: 2.4 (increment the patch/fix version number if you make more commits past your first submission)
 
 ## Overview
 <!-- Provide a high level overview of what this application is and why you are building it, beyond the fact that it's an assignment for this class. (i.e. What's your problem domain?) -->

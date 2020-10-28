@@ -1,71 +1,76 @@
+
 'use strict';
-/* eslint-disable no-redeclare */
-/* eslint-disable no-undef */
+
 require('dotenv').config();
 const express = require('express');
 const app = express();
-const superagent = require('superagent');
+const PORT = process.env.PORT || 3000;
 const cors = require('cors');
-const PORT = process.env.PORT;
+const superagent = require('superagent');
+const pg = require('pg');
+const client = new pg.Client(process.env.DATABASE_URL);
 app.use(cors());
 
-app.get('/location', handleLocation);
+// %%%%%%%%%%%%%%%%%%%%%% Location Handler %%%%%%%%%%%%%%%%%%%%%%%
+app.get('/location', (request, response) => {
+  const city = request.query.city;
+  const SQL = 'SELECT * FROM locations WHERE search_query = $1';
+  const value = [city];
+  client
+    .query(SQL, value)
+    .then((result) => {
+      if (result.rows.length > 0) {
+        response.status(200).json(result.rows[0]);
+        console.log('hi im omar');
+      } else {
+        superagent(
+          `https://eu1.locationiq.com/v1/search.php?key=${process.env.GEOCODE_API_KEY}&q=${city}&format=json`
+        ).then((res) => {
+          console.log('helloooo');
+          const geoData = res.body;
+          const locationData = new Location(city, geoData);
+          const SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1,$2,$3,$4) RETURNING *';
+          const value = [locationData.search_query, locationData.formatted_query, locationData.latitude, locationData.longitude];
 
-function handleLocation(req, res) {
-  let city = req.query.city;
-  let geoKey = process.env.GEOCODE_API_KEY;
+          client.query(SQL, value).then((result) => {
+            console.log(result.rows);
+            response.status(200).json(result.rows[0]);
+          });
+        });
+      }
+    }).catch((err) => errorHandler(err, request, response)
+    );
+});
 
-
-  superagent.get(`https://eu1.locationiq.com/v1/search.php?key=${geoKey}&q=${city}&format=json`)
-    .then((data) => {
-      const geoData = data.body[0];
-      // res.send(data);
-      let locationObject = new Location(city, geoData.display_name, geoData.lat, geoData.lon);
-      res.status(200).json(locationObject);
-    }).catch(console.error);
+function Location(city, geoData) {
+  this.search_query = city;
+  this.formatted_query = geoData[0].display_name;
+  this.latitude = geoData[0].lat;
+  this.longitude = geoData[0].lon;
 }
 
-// constructor
-function Location(search_query, formatted_query, latitude, longitude) {
-  this.search_query = search_query;
-  this.formatted_query = formatted_query;
-  this.latitude = latitude;
-  this.longitude = longitude;
-}
+// %%%%%%%%%%%%%%%%%%%%%%% Weather Handler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-//==============================================//
-
-app.get('/weather', handleWeather);
-
-
-
-function handleWeather(req, res) {
-
-  let weatherArr = [];
-  let search_query = req.query.search_query;
-  let weatherKey = process.env.WEATHER_API_KEY;
-
-
-  superagent.get(`https://api.weatherbit.io/v2.0/forecast/daily?city=${search_query}&key=${weatherKey}`)
+app.get('/weather', (request, response) => {
+  const city = request.query.search_query;
+  let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${process.env.WEATHER_API_KEY}`;
+  superagent(url)
     .then((dataX) => {
-
-      dataX.body.data.map(rain => {
-        const newWeather = new Weather(search_query, rain);
-        weatherArr.push(newWeather);
+      const weatherNow = dataX.body.data.map((weatherData) => {
+        return new Weather(weatherData);
       });
-      res.send(weatherArr);
-    }).catch(console.error);
+      response.status(200).json(weatherNow);
+    })
+    .catch((error) => errorHandler(error, request, response));
+});
+
+function Weather(weatherData) {
+  this.forecast = weatherData.weather.description;
+  this.datetime = new Date(weatherData.valid_date);
 }
 
-function Weather(search_query, rain) {
-  this.search_query = search_query;
-  this.forecast = rain.weather.description;
-  this.time = rain.datetime;
-}
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Trails Handler %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-//==================================================//
-// Trails
 
 app.get('/trails', handleTrails);
 
@@ -84,7 +89,7 @@ function handleTrails(req, res) {
       });
     });
 }
-
+//%%%%%%%%%%%%%%%%%%%%%% Trails Function %%%%%%%%%%%%%%%%%%%%%%%
 function Trails(trailData) {
   this.name = trailData.name;
   this.location = trailData.location;
@@ -97,8 +102,18 @@ function Trails(trailData) {
   this.condition_date = trailData.condition_date;
   this.condition_time = trailData.condition_time;
 }
+// ###################### Error Handler ########################
 
+function errorHandler(error, request, response) {
+  response.status(500).send(error);
+}
 
-app.listen(PORT, () => {
-  console.log(`App is listening on port ${PORT}`);
+// Make sure the server is listening
+client.connect().then(() => {
+  app.listen(PORT, () => { console.log(`You Successfully Connected To Port ${PORT}`); });
+}).catch(err => {
+  console.log('Sorry ... and error occured ..', err);
 });
+
+// #############################################################
+
