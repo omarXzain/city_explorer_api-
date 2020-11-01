@@ -1,8 +1,8 @@
 /* eslint-disable no-undef */
-"use strict";
+'use strict';
 
-require("dotenv").config();
-const superagent = require("superagent");
+require('dotenv').config();
+const superagent = require('superagent');
 let yelp_key = process.env.YELP_API_KEY;
 
 function yelpHandler(request, response) {
@@ -14,8 +14,7 @@ function yelpHandler(request, response) {
       const yelpNow = dataX.body.businesses.map((yelpData) => {
         return new Yelp(yelpData);
       });
-      // response.status(200).json(yelpNow);
-      return yelpNow;
+      response.send(yelpNow);
     })
     .catch((error) => errorHandler(error, request, response));
 }

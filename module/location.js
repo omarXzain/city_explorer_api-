@@ -6,8 +6,7 @@ require('dotenv').config();
 const superagent = require('superagent');
 const pg = require('pg');
 const client = new pg.Client(process.env.DATABASE_URL);
-client
-    .connect()
+client.connect()
     .then();
 
 
@@ -18,22 +17,24 @@ function locationHandler(request, response) {
     client
         .query(SQL, value)
         .then((result) => {
+
             if (result.rows.length > 0) {
                 response.status(200).json(result.rows[0]);
-                console.log('Test im omar');
             } else {
                 superagent(
                     `https://eu1.locationiq.com/v1/search.php?key=${process.env.GEOCODE_API_KEY}&q=${city}&format=json`
                 ).then((dataX) => {
                     const geoData = dataX.body;
                     const locationData = new LocationConstructor(city, geoData);
-                    const SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1,$2,$3,$4) RETURNING *';
-                    const value = [locationData.search_query, locationData.formatted_query, locationData.latitude, locationData.longitude];
 
-                    client.query(SQL, value).then((result) => {
-                        console.log(result.rows);
-                        response.status(200).json(result.rows[0]);
-                    });
+                    const SQL2 = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1,$2,$3,$4) RETURNING *';
+
+                    const value2 = [locationData.search_query, locationData.formatted_query, locationData.latitude, locationData.longitude];
+
+                    client.query(SQL2, value2)
+                        .then((result) => {
+                            response.status(200).json(result.rows[0]);
+                        });
                 });
             }
         }).catch((err) => errorHandler(err, request, response)
