@@ -1,8 +1,8 @@
 /* eslint-disable no-undef */
-"use strict";
+'use strict';
 
-require("dotenv").config();
-const superagent = require("superagent");
+require('dotenv').config();
+const superagent = require('superagent');
 
 function moviesHandler(request, response) {
   const filmSearch = request.query.search_query;
@@ -10,13 +10,14 @@ function moviesHandler(request, response) {
 
   let url = `https://api.themoviedb.org/3/search/movie?api_key=${movies_key}&query=${filmSearch}`;
 
-  superagent(url)
+  superagent.get(url)
     .then((dataX) => {
-      const moviesNow = dataX.body.data.map((moviesData) => {
-        return new Movies(moviesData);
+      const moviesNow = dataX.body.results;
+      const filmData = moviesNow.map((moviesData) => {
+        const moviesObject = new Movies(moviesData);
+        return moviesObject;
       });
-      // response.status(200).json(moviesNow);
-      return moviesNow;
+      response.send(filmData);
     })
     .catch((error) => errorHandler(error, request, response));
 }
@@ -25,7 +26,7 @@ function Movies(moviesData) {
   this.title = moviesData.title;
   this.overview = moviesData.overview;
   this.average_votes = moviesData.average_votes;
-  this.image_url = moviesData.image_url;
+  this.image_url = `https://image.tmdb.org/t/p/w500${moviesData.poster_path}`;
   this.popularity = moviesData.popularity;
   this.released_on = moviesData.released_on;
 }
